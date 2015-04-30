@@ -9,44 +9,47 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+
 import org.apache.tools.ant.BuildException;
 import org.apache.tools.ant.Task;
 import org.apache.tools.ant.types.Resource;
 import org.apache.tools.ant.types.ResourceCollection;
 import org.apache.tools.ant.types.resources.FileResource;
 
-public class BlogTask extends Task  {
+public class BlogTask extends Task {
 
 	private BlogContext context = new BlogContext();
-	
+
 	// パラメータ
 	private String build = "all";
 
 	protected List<ResourceCollection> rclist = new ArrayList<ResourceCollection>();
+
 	public void add(ResourceCollection rc) {
 		rclist.add(rc);
 	}
-	
+
 	@Override
 	public void execute() throws BuildException {
 		VelocityUtil.init(context);
-		
+
 		HashMap<String, Builder> builders = new HashMap<String, Builder>();
-		builders.put("index",    new BuilderTopPage());
-		builders.put("content",  new BuilderSinglePage());
+		builders.put("index", new BuilderTopPage());
+		builders.put("content", new BuilderSinglePage());
 		builders.put("category", new BuilderCategory());
-		builders.put("arcive",   new BuilderArchive());
-		builders.put("recent",   new BuilderRecent());
-		builders.put("rss",      new BuilderRss());
-		builders.put("json",     new BuilderJson());
-		//builders.put("draft",    new BuilderDraft());
-		
+		builders.put("arcive", new BuilderArchive());
+		builders.put("recent", new BuilderRecent());
+		builders.put("rss", new BuilderRss());
+		builders.put("json", new BuilderJson());
+		// builders.put("draft", new BuilderDraft());
+		builders.put("exclude", new BuilderExcludePage());
+
 		List<String> builds = Tool.parseCamma(build);
 		boolean isDraft = builds.contains("draft");
 		if (isDraft && builds.size() != 1) {
 			throw new BuildException("Other builders cannot coexist with a draft.");
 		}
-		
+
 		try {
 			initBlogContext(isDraft);
 			if (isDraft) {
@@ -62,23 +65,23 @@ public class BlogTask extends Task  {
 					builders.get(name).build(context);
 				}
 			}
-			
-			//new BuilderTopPage().build(context);
+
+			// new BuilderTopPage().build(context);
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw new BuildException(e);
 		}
-	}	
-	
+	}
+
 	public void initBlogContext(boolean isDraft) throws IOException, ParseException {
 		List<Blog> blogs = context.getBlogs();
-		
+
 		for (ResourceCollection rc : rclist) {
 			for (Iterator<?> ite = rc.iterator(); ite.hasNext();) {
 				Resource resource = (Resource) ite.next();
 				if (resource instanceof FileResource) {
 					File file = ((FileResource) resource).getFile();
-					//System.out.println("=>"+file);
+					// System.out.println("=>"+file);
 					Blog blog = Blog.load(context, file);
 					blogs.add(blog);
 				}
@@ -86,25 +89,36 @@ public class BlogTask extends Task  {
 		}
 
 		if (isDraft) draftSetup(blogs);
-		
+
 		// 下書き削除前にやる必要がある。
 		HashMap<String, Category> tags = context.getTags();
 		for (Blog blog : blogs) {
 			addTags(tags, blog);
 		}
-		
+
 		sortDate(blogs);
+		moveExcluses(blogs, context.getExcludes());
 		if (!isDraft) removeDraft(blogs);
+	}
+	private void moveExcluses(List<Blog> blogs, List<Blog> excludes) {
+		Iterator<Blog> ite = blogs.iterator();
+		while (ite.hasNext()) {
+			Blog blog = ite.next();
+			if (blog.isExclude()) {
+				excludes.add(blog);
+				ite.remove();
+			}
+		}
 	}
 	private void removeDraft(List<Blog> blogs) throws IOException {
 		Iterator<Blog> ite = blogs.iterator();
-		Blog beforeBlog = null; 
+		Blog beforeBlog = null;
 		while (ite.hasNext()) {
 			Blog blog = ite.next();
 			if (!blog.isPublish()) {
 				ite.remove();
 				File file = new File(context.getDocumentRoot(), blog.getContentPath());
-				System.out.println("Remove:"+file);
+				System.out.println("Remove:" + file);
 				file.delete();
 				if (beforeBlog != null) beforeBlog.setUpdate(true);
 			}
@@ -122,13 +136,12 @@ public class BlogTask extends Task  {
 			if (blog.isPublish()) ite.remove();
 		}
 	}
-	
-	
+
 	private void addTags(HashMap<String, Category> tagMap, Blog blog) throws IOException {
 		boolean isUpdate = blog.isUpdate(context);
-		
-		String[] tags = ((String)blog.get(Blog.Tags)).split(",");
-		for (int i=0; i<tags.length; i++) {
+
+		String[] tags = ((String) blog.get(Blog.Tags)).split(",");
+		for (int i = 0; i < tags.length; i++) {
 			String key = trimTag(tags[i]);
 			if (!key.isEmpty()) {
 				Category category = tagMap.get(key);
@@ -143,13 +156,12 @@ public class BlogTask extends Task  {
 	}
 	private static String trimTag(String tag) {
 		tag = tag.trim();
-		//if ("Java".equals(tag)) tag = "java";
+		// if ("Java".equals(tag)) tag = "java";
 		return tag.toLowerCase();
 	}
-	
 
 	public static List<Blog> sortDate(List<Blog> blogs) {
-		Collections.sort(blogs, new Comparator<Blog>(){
+		Collections.sort(blogs, new Comparator<Blog>() {
 			@Override
 			public int compare(Blog a, Blog b) {
 				return b.getDate().compareTo(a.getDate());
@@ -157,17 +169,15 @@ public class BlogTask extends Task  {
 		});
 		return blogs;
 	}
-	
-	
+
 	public static String getRelativePath(BlogContext ctx, File file) throws IOException {
 		File root = ctx.getContentsRoot();
 		int len = root.getAbsolutePath().length();
-		String relPath = file.getAbsolutePath().substring(len-1);
+		String relPath = file.getAbsolutePath().substring(len - 1);
 		return relPath;
 	}
-	
-	
-	//--------------------------------------------------------------
+
+	// --------------------------------------------------------------
 	// Attributes
 	public File getContentsRoot() {
 		return context.getContentsRoot();
@@ -224,7 +234,7 @@ public class BlogTask extends Task  {
 	public void setBuild(String build) {
 		this.build = build;
 	}
-	
+
 	public int getPagingSize() {
 		return context.getPagingSize();
 	}
@@ -232,6 +242,5 @@ public class BlogTask extends Task  {
 	public void setPagingSize(int pagingSize) {
 		context.setPagingSize(pagingSize);
 	}
-
 
 }

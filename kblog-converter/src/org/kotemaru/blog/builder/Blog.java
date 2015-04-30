@@ -9,25 +9,27 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.HashMap;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Locale;
 
 import com.petebevin.markdown.MarkdownProcessor;
 
 public class Blog extends HashMap<String, Object> {
 	private static final long serialVersionUID = 1L;
-	
+
 	public static final String Subject = "subject";
 	public static final String ContentType = "content-type";
 	public static final String Tags = "tags";
 	public static final String Date = "date";
 	public static final String Public = "public";
-	
+	public static final String Exclude = "exclude";
+
 	public static final String LOVELOG_TEXT = "lovelog/text";
 	public static final String PLAIN_TEXT = "plain/text";
 	public static final String HTML_TEXT = "html/text";
 	public static final String MARKDOWN_TEXT = "markdown/text";
-	
+
 	private File file;
 	private long lastModified;
 	private String relativePath;
@@ -35,12 +37,13 @@ public class Blog extends HashMap<String, Object> {
 
 	private Date date;
 	private boolean publish;
+	private boolean exclude;
 
 	private String content;
 
 	public Blog() {
 	}
-	
+
 	public static Blog load(BlogContext ctx, File file) throws IOException, ParseException {
 		Blog blog = new Blog();
 		File root = ctx.getContentsRoot();
@@ -72,10 +75,10 @@ public class Blog extends HashMap<String, Object> {
 			this.put(name, value);
 			line = r.readLine().trim();
 		}
-		
+
 		String rawText = getString(r);
 		in.close();
-		
+
 		String cType = (String) get(ContentType);
 		if (MARKDOWN_TEXT.equals(cType)) {
 			MarkdownProcessor markdown = new MarkdownProcessor();
@@ -85,8 +88,8 @@ public class Blog extends HashMap<String, Object> {
 		} else {
 			setContent(rawText);
 		}
-		
-		
+
+
 		String dateStr = ((String) this.get(Date)).trim();
 		SimpleDateFormat fmt = (dateStr.length()<=10)
 			? new SimpleDateFormat("yyyy/MM/dd")
@@ -94,12 +97,16 @@ public class Blog extends HashMap<String, Object> {
 		Date date = fmt.parse((String) this.get(Date));
 		setDate(date);
 
-		//if (date.getTime() < System.currentTimeMillis()) {
-			String _public = ((String) this.get(Public)).toLowerCase();
-			//System.out.println("---->"+_public);
-			setPublish("yes".equals(_public) || "true".equals(_public));
-		//}
+		setPublish(toBoolean((String)this.get(Public)));
+		setExclude(toBoolean((String)this.get(Exclude)));
+
 		return this;
+	}
+
+	private boolean toBoolean(String str) {
+		if (str == null) return false;
+		str = str.toLowerCase(Locale.US);
+		return "yes".equals(str) || "true".equals(str);
 	}
 
 	public static String getString(Reader r) throws IOException {
@@ -111,9 +118,9 @@ public class Blog extends HashMap<String, Object> {
 		}
 		return sbuf.toString();
 	}
-	
+
 	public String getContentPath() throws IOException {
-		return relativePath.replaceFirst("[.]blog$", ".html");
+		return relativePath.replaceFirst("[.]blog$", ".html").replace('\\', '/');
 	}
 	public boolean isUpdate(BlogContext ctx) throws IOException {
 		File file = new File(ctx.getDocumentRoot(), this.getContentPath());
@@ -123,7 +130,7 @@ public class Blog extends HashMap<String, Object> {
 
 	//====================================================================
 	// Setter/Getter
-	
+
 	public String getRelativePath() {
 		return relativePath;
 	}
@@ -173,5 +180,13 @@ public class Blog extends HashMap<String, Object> {
 	public File getFile() {
 		return this.file;
 	}
-	
+
+	public boolean isExclude() {
+		return exclude;
+	}
+
+	public void setExclude(boolean exclude) {
+		this.exclude = exclude;
+	}
+
 }

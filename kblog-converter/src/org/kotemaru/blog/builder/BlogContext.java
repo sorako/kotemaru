@@ -16,6 +16,8 @@ public class BlogContext {
 	private int pagingSize = 8;
 
 	private List<Blog> blogs = new ArrayList<Blog>();
+	private List<Blog> excludes = new ArrayList<Blog>();
+
 	private HashMap<String, Category> tags = new HashMap<String, Category>();
 
 	public File getContentsRoot() {
@@ -72,7 +74,13 @@ public class BlogContext {
 	public void setPagingSize(int pagingSize) {
 		this.pagingSize = pagingSize;
 	}
-	
+	public List<Blog> getExcludes() {
+		return excludes;
+	}
+	public void setExcludes(List<Blog> excludes) {
+		this.excludes = excludes;
+	}
 
-	
+
+
 }
