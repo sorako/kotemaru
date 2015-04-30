@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <project basedir="." default="blog" name="kblog">
-	<property file="build.properties" /> 
+	<property file="build.properties" />
 
 	<property name="basedir" value="."/>
     <property name="contents" value="${basedir}/contents"/>
@@ -10,7 +10,7 @@
 		<format property="date" pattern="yyyymmdd"/>
 		<format property="time" pattern="hhmmss"/>
 	</tstamp>
-	
+
 
 	<import file="${sdk.dir}/config/user/ant-macros.xml" />
 
@@ -26,12 +26,12 @@
 		classname="org.kotemaru.blog.builder.BlogTask"
 		classpathref="converter.path" loaderref="blog"
 	/>
-	
+
 	<target name="blog-draft" depends="resource,blog-draft-main">
 	</target>
-	
+
 	<target name="blog-draft-main" >
-        <blog.builder 
+        <blog.builder
         	contentsRoot="${contents}"
         	documentRoot="${document}"
         	rootPath=""
@@ -41,12 +41,13 @@
         	<fileset dir="${contents}">
         		<include name="20??/**/*.blog"/>
         		<include name="old/20??/**/*.blog"/>
+        		<include name="other/**/*.blog"/>
         	</fileset>
 		</blog.builder>
     </target>
-	
+
 	<target name="blog" depends="resource">
-        <blog.builder 
+        <blog.builder
         	contentsRoot="${contents}"
         	documentRoot="${document}"
         	rootPath=""
@@ -56,16 +57,17 @@
         	<fileset dir="${contents}">
         		<include name="20??/**/*.blog"/>
         		<include name="old/20??/**/*.blog"/>
+        		<include name="other/**/*.blog"/>
         	</fileset>
 		</blog.builder>
-		
+
 		<copy file="${document}/atom.xml" tofile="${document}/index.rdf" />
 		<mkdir dir="${document}/feeds/posts" />
 		<copy file="${document}/atom.xml" tofile="${document}/feeds/posts/default" />
 
     </target>
 
-	
+
 	<target name="resource" >
 		<copy todir="${document}" preservelastmodified="true" >
         	<fileset dir="${contents}">
@@ -75,7 +77,7 @@
         	</fileset>
 		</copy>
 	</target>
-	
+
 	<target name="clean" >
 	    <delete verbose="true" includeEmptyDirs="true">
 	      <fileset dir="war">
@@ -86,7 +88,7 @@
 	      </fileset>
 	    </delete>
 	</target>
-	
+
 	<target name="log">
 		<mkdir dir="logs" />
 		<appcfg action="request_logs" war="war">
@@ -97,5 +99,5 @@
 				<arg value="logs/gae-${date}.txt"/>
 			</args>
 		</appcfg>
-	</target>	
+	</target>
 </project>
