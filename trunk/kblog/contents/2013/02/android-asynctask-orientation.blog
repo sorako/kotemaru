@@ -4,6 +4,10 @@ Tags: android, java, メモ
 Date: 2013/02/16
 Public: yes
 
+
+※<a href="/2015/04/10/android-x86-4.4-setup.html">Android-x86-4.4r2 の設定はこちら</a>
+<br><br>
+
 <br />
 Androidで非同期処理を Thread でやろうとするとこんな例外が出て怒られる。<br />
 <br />
